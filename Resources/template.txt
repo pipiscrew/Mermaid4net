@@ -1,0 +1,52 @@
+<html>
+<!--
+https://mermaid.js.org/intro/getting-started.html
+https://mermaid.js.org/config/schema-docs/config.html
+https://mermaid.live/
+https://mermaid.js.org/ecosystem/mermaid-chart.html
+https://www.mermaidchart.com/
+https://jojozhuang.github.io/tutorial/mermaid-cheat-sheet/
+https://github.com/mermaid-js/mermaid/tree/develop/packages/mermaid/src/themes
+-
+https://github.com/itn3000/Cs2Mermaid
+https://github.com/samsmithnz/MermaidDotNet
+https://github.com/jespervandijk/mermaid-class-diagram-generator
+draw.io - can import mermaid - use "Arrange" > "Insert" > "Advanced" > "Mermaid"
+-->
+<title>Mermaid for .net | {filename}</title>
+  <body>
+    Here is one mermaid diagram:
+	<pre class="mermaid">
+			graph LR
+			A["Client"] --> B["Load Balancer"]
+			B --> C["Server1"]
+			B --> D["Server2"]
+	</pre>
+
+    And here is another:
+    <pre class="mermaid">
+            graph LR
+            A["Client"] -->|tcp_123| B
+            B(Load Balancer)
+            B -->|tcp_456| C["Server1"]
+            B -->|tcp_456| D["Server2"]
+    </pre>
+	
+    And here is another:
+    <pre class="mermaid">
+		graph TD;
+			A[Start] --> B{Decision};
+			B -->|Yes| C[Option 1];
+			B -->|No| D[Option 2];
+			C --> E[End];
+			D --> E;
+    </pre>
+
+{placeholder}
+
+    <script type="module">
+      import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+      mermaid.initialize({ startOnLoad: true, theme: 'forest', maxTextSize : 99999999 });
+    </script>
+  </body>
+</html>
