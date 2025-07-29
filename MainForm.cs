@@ -12,6 +12,8 @@ namespace Mermaid4net
 {
     public partial class MainForm : Form
     {
+        internal static List<daClass> methodCorrelations;
+
         public MainForm()
         {
             InitializeComponent();
@@ -29,7 +31,7 @@ namespace Mermaid4net
 
             var assembly = AssemblyDefinition.ReadAssembly(txtFile.Text);
 
-            List<daClass> methodCorrelations = new List<daClass>();
+            methodCorrelations = new List<daClass>();
 
             foreach (var type in assembly.MainModule.Types)
             {
@@ -108,12 +110,12 @@ namespace Mermaid4net
             GC.Collect();
         }
 
-        private static StringBuilder DigCall(daMethod m, daClass item, string parentMethod, LetterGenerator NewLetter, StringBuilder sB, int currentDepth, int maxDepth)
+        private static void DigCall(daMethod m, daClass item, string parentMethod, LetterGenerator NewLetter, StringBuilder sB, int currentDepth, int maxDepth)
         {
             if (currentDepth > maxDepth) //recursive limit - avoid input file recursive functions 
             {
                 sB.AppendLine("Max recursion depth reached for method: " + parentMethod);
-                return sB;
+                return;
             }
 
             // string lastMethod =NewLetter.GetNextLetter() + "[\"" + ExtractMethod(parentMethod) + "\"]";
@@ -128,7 +130,8 @@ namespace Mermaid4net
                 else
                     destination = parentMethod;
 
-                var f = item.methods.Where(hh => hh.methodName.Equals(c)).FirstOrDefault();
+                //var f = item.methods.Where(hh => hh.methodName.Equals(c)).FirstOrDefault();
+                var f = methodCorrelations.SelectMany(type => type.methods).Where(dd => dd.methodName.Equals(c)).FirstOrDefault();
 
                 if (f != null)
                 {
@@ -137,8 +140,6 @@ namespace Mermaid4net
                 }
 
             }
-
-            return sB;
         }
 
         /*
