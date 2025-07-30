@@ -1,10 +1,10 @@
 ﻿namespace Mermaid4net
 {
-    public class LetterGenerator
+    internal class LetterGenerator : INodeHandleGenerator
     {
-        private int currentIndex = 0; 
+        private int currentIndex = 0;
 
-        public string GetNextLetter()
+        public string GetNextNodeHandle()
         {
             string nextLetter = ConvertToLetter(currentIndex);
             currentIndex++;
@@ -31,5 +31,20 @@
 
             return new string(letters);
         }
+    }
+
+    internal class NumGenerator : INodeHandleGenerator
+    {
+        private int currentIndex = 0;
+
+        public string GetNextNodeHandle()
+        {
+            return currentIndex++.ToString();
+        }
+    }
+
+    internal interface INodeHandleGenerator
+    {
+        string GetNextNodeHandle();
     }
 }

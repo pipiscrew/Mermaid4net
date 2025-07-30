@@ -2,6 +2,7 @@
 using Mono.Cecil.Cil;
 using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -17,6 +18,7 @@ namespace Mermaid4net
         public MainForm()
         {
             InitializeComponent();
+            this.BackColor = Color.FromArgb(26, 15, 30);
         }
 
         private void button1_Click(object sender, EventArgs e)
@@ -66,7 +68,12 @@ namespace Mermaid4net
                 //Console.WriteLine("------------------------" + type.Name + "------------------------");
             }
 
-            LetterGenerator NewLetter = new LetterGenerator();
+            INodeHandleGenerator NewNodeHandle;
+            if (optLetter.Checked)
+                NewNodeHandle = new LetterGenerator();
+            else
+                NewNodeHandle = new NumGenerator();
+
 
             StringBuilder sB = new StringBuilder();
             string lastMethod = string.Empty;
@@ -81,8 +88,8 @@ namespace Mermaid4net
                 foreach (daMethod m in item.methods) //.Where(z=>z.calls.Count>0))
                 {
 
-                    lastMethod = NewLetter.GetNextLetter() + "[\"" + ExtractMethod(m.methodName) + "\"]";
-                    DigCall(m, item, lastMethod, NewLetter, sB, 0, 10);
+                    lastMethod = NewNodeHandle.GetNextNodeHandle() + "[\"" + ExtractMethod(m.methodName) + "\"]";
+                    DigCall(m, item, lastMethod, NewNodeHandle, sB, 0, 10);
 
                 }
                 sB.AppendLine("</pre>");
@@ -110,11 +117,11 @@ namespace Mermaid4net
             GC.Collect();
         }
 
-        private static void DigCall(daMethod m, daClass item, string parentMethod, LetterGenerator NewLetter, StringBuilder sB, int currentDepth, int maxDepth)
+        private static void DigCall(daMethod m, daClass item, string parentMethod, INodeHandleGenerator NewLetter, StringBuilder sB, int currentDepth, int maxDepth)
         {
             if (currentDepth > maxDepth) //recursive limit - avoid input file recursive functions 
             {
-                sB.AppendLine("Max recursion depth reached for method: " + parentMethod);
+                sB.AppendLine("Max recursion depth reached");
                 return;
             }
 
@@ -124,7 +131,7 @@ namespace Mermaid4net
             {
                 if (!c.Contains("__"))
                 {
-                    destination = NewLetter.GetNextLetter() + "[\"" + ExtractMethod(c) + "\"]";
+                    destination = NewLetter.GetNextNodeHandle() + "[\"" + ExtractMethod(c) + "\"]";
                     sB.AppendLine(parentMethod + " --> " + destination);
                 }
                 else
