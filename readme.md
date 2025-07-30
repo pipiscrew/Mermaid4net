@@ -20,6 +20,7 @@ This project uses :
 > draw.io - can import mermaid - use "Arrange" > "Insert" > "Advanced" > "Mermaid"  
 
 references : 
+* <https://github.com/FoggyBalrog/MermaidDotNet> - .NET library to generate Mermaid diagrams code
 * <https://github.com/samsmithnz/MermaidDotNet> - .NET `wrapper` to create Mermaid
 * <https://github.com/jespervandijk/mermaid-class-diagram-generator> - `UML`
 * <https://github.com/itn3000/Cs2Mermaid> - .NET `syntax tree` to mermaid diagram
