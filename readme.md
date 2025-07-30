@@ -1,5 +1,5 @@
 # Mermaid for .net
-The need was to see each method dependencies (what methods uses). The existing solutions did provide such functionality. Yeah, talking about : 
+The need was to see each method dependencies (what methods uses). The existing solutions do not provide such functionality. Yeah, talking about : 
 * [Zen.ndepend](https://www.ndepend.com/docs/class-dependency-diagram)
 * [Fatesoft.Program Flow chart Generator](https://www.fatesoft.com/)  
 
