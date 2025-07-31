@@ -27,6 +27,7 @@ references :
     * [antlr](https://www.antlr.org/)
     * stackoverflow - [AST with sharpdevelop](https://stackoverflow.com/a/4553345)
     * stackoverflow - [CSharpSyntaxTree](https://stackoverflow.com/a/44043018)  
+* [Convert Images to Draw.io Diagrams](https://imagetodrawio.com/)  
 
 ## This project is no longer maintained
 Copyright (c) 2025 [PipisCrew](http://pipiscrew.com)  
