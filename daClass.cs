@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Mono.Cecil.Cil;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -19,12 +20,20 @@ namespace Mermaid4net
 
     public class daMethod
     {
+        public IEnumerable<Instruction> conditionalBranches { get; set; }
+        public IEnumerable<Instruction> elseBR { get; set; }
         public string methodName {get;set;}
-        public List<string> calls { get; set; }
+        public List<daCall> calls { get; set; }
 
         public daMethod()
         {
-            calls = new List<string>();
+            calls = new List<daCall>();
         }
+    }
+
+    public class daCall
+    {
+        public string callName { get; set; }
+        public int callOffset { get; set; }
     }
 }

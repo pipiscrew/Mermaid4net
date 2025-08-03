@@ -35,6 +35,8 @@
             this.optNum = new System.Windows.Forms.RadioButton();
             this.optLetter = new System.Windows.Forms.RadioButton();
             this.pictureBox1 = new System.Windows.Forms.PictureBox();
+            this.chkDecision = new System.Windows.Forms.CheckBox();
+            this.chkDecisionTask = new System.Windows.Forms.CheckBox();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).BeginInit();
             this.SuspendLayout();
             // 
@@ -77,7 +79,7 @@
             // 
             this.optNum.AutoSize = true;
             this.optNum.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(253)))), ((int)(((byte)(49)))), ((int)(((byte)(110)))));
-            this.optNum.Location = new System.Drawing.Point(13, 72);
+            this.optNum.Location = new System.Drawing.Point(13, 64);
             this.optNum.Name = "optNum";
             this.optNum.Size = new System.Drawing.Size(74, 19);
             this.optNum.TabIndex = 3;
@@ -89,7 +91,7 @@
             this.optLetter.AutoSize = true;
             this.optLetter.Checked = true;
             this.optLetter.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(253)))), ((int)(((byte)(49)))), ((int)(((byte)(110)))));
-            this.optLetter.Location = new System.Drawing.Point(104, 72);
+            this.optLetter.Location = new System.Drawing.Point(13, 85);
             this.optLetter.Name = "optLetter";
             this.optLetter.Size = new System.Drawing.Size(67, 19);
             this.optLetter.TabIndex = 0;
@@ -107,11 +109,39 @@
             this.pictureBox1.TabIndex = 5;
             this.pictureBox1.TabStop = false;
             // 
+            // chkDecision
+            // 
+            this.chkDecision.AutoSize = true;
+            this.chkDecision.Checked = true;
+            this.chkDecision.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.chkDecision.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(253)))), ((int)(((byte)(49)))), ((int)(((byte)(110)))));
+            this.chkDecision.Location = new System.Drawing.Point(102, 65);
+            this.chkDecision.Name = "chkDecision";
+            this.chkDecision.Size = new System.Drawing.Size(117, 19);
+            this.chkDecision.TabIndex = 6;
+            this.chkDecision.Text = "show decision";
+            this.chkDecision.UseVisualStyleBackColor = true;
+            this.chkDecision.CheckStateChanged += new System.EventHandler(this.chkDecision_CheckStateChanged);
+            // 
+            // chkDecisionTask
+            // 
+            this.chkDecisionTask.AutoSize = true;
+            this.chkDecisionTask.Font = new System.Drawing.Font("Consolas", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(161)));
+            this.chkDecisionTask.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(253)))), ((int)(((byte)(49)))), ((int)(((byte)(110)))));
+            this.chkDecisionTask.Location = new System.Drawing.Point(119, 82);
+            this.chkDecisionTask.Name = "chkDecisionTask";
+            this.chkDecisionTask.Size = new System.Drawing.Size(128, 30);
+            this.chkDecisionTask.TabIndex = 7;
+            this.chkDecisionTask.Text = "with Task support\r\n(experimental)";
+            this.chkDecisionTask.UseVisualStyleBackColor = true;
+            // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(351, 109);
+            this.Controls.Add(this.chkDecisionTask);
+            this.Controls.Add(this.chkDecision);
             this.Controls.Add(this.button1);
             this.Controls.Add(this.pictureBox1);
             this.Controls.Add(this.optLetter);
@@ -138,5 +168,7 @@
         private System.Windows.Forms.RadioButton optNum;
         private System.Windows.Forms.RadioButton optLetter;
         private System.Windows.Forms.PictureBox pictureBox1;
+        private System.Windows.Forms.CheckBox chkDecision;
+        private System.Windows.Forms.CheckBox chkDecisionTask;
     }
 }

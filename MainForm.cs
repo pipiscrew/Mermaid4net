@@ -13,7 +13,12 @@ namespace Mermaid4net
 {
     public partial class MainForm : Form
     {
+
         internal static List<daClass> methodCorrelations;
+        internal static StringBuilder sB;
+        internal static bool showDecision;
+        internal static bool showDecisionTask;
+        
 
         public MainForm()
         {
@@ -34,6 +39,9 @@ namespace Mermaid4net
             var assembly = AssemblyDefinition.ReadAssembly(txtFile.Text);
 
             methodCorrelations = new List<daClass>();
+            showDecision = chkDecision.Checked; //make it accessible by static methods
+            showDecisionTask = chkDecisionTask.Checked;
+
 
             foreach (var type in assembly.MainModule.Types)
             {
@@ -48,7 +56,7 @@ namespace Mermaid4net
 
                 foreach (var method in type.Methods)
                 {
-                    if (IsSystemMethod(method) || method.FullName=="System.Void Program::<Main>(System.String[])") //.net8 console
+                    if (IsSystemMethod(method) || method.FullName == "System.Void Program::<Main>(System.String[])") //.net8 console async main
                         continue;
 
                     //Console.WriteLine("*1*" + method.FullName);
@@ -58,7 +66,7 @@ namespace Mermaid4net
 
                     if (method.HasBody)
                     {
-                        AnalyzeMethod(method, newMethod.calls, type);
+                        AnalyzeMethod(method, newMethod, type);
                     }
 
                     newType.methods.Add(newMethod);
@@ -74,8 +82,8 @@ namespace Mermaid4net
             else
                 NewNodeHandle = new NumGenerator();
 
-
-            StringBuilder sB = new StringBuilder();
+       
+            sB = new StringBuilder();
             string lastMethod = string.Empty;
             foreach (daClass item in methodCorrelations)
             {
@@ -99,9 +107,9 @@ namespace Mermaid4net
             assembly.Dispose();
 
             string output = Path.GetDirectoryName(txtFile.Text) + "\\"
-                            + Path.GetFileNameWithoutExtension(txtFile.Text) 
+                            + Path.GetFileNameWithoutExtension(txtFile.Text)
                             + "_" + DateTime.Now.ToString("yyyyMMddHHmmss") + ".html";
-            
+
             if (File.Exists(output))
             {
                 MessageBox.Show("Could not save the file, same file exists.\n\n" + output);
@@ -117,6 +125,8 @@ namespace Mermaid4net
             GC.Collect();
         }
 
+        static string elseNodeMethod = string.Empty;
+        static string elseNodeLetter = string.Empty;
         private static void DigCall(daMethod m, daClass item, string parentMethod, INodeHandleGenerator NewLetter, StringBuilder sB, int currentDepth, int maxDepth)
         {
             if (currentDepth > maxDepth) //recursive limit - avoid input file recursive functions 
@@ -125,20 +135,49 @@ namespace Mermaid4net
                 return;
             }
 
+            if (m.methodName.Contains("button3_Click_1"))
+            {
+                Console.WriteLine("!!");
+            }
             // string lastMethod =NewLetter.GetNextLetter() + "[\"" + ExtractMethod(parentMethod) + "\"]";
             string destination = string.Empty;
+
             foreach (var c in m.calls)
             {
-                if (!c.Contains("__"))
+                if (showDecision)
                 {
-                    destination = NewLetter.GetNextNodeHandle() + "[\"" + ExtractMethod(c) + "\"]";
+                    var occuringIfCondiiton = m.conditionalBranches.Where(i => i.Offset <= c.callOffset && (i.Operand as Instruction).Offset >= c.callOffset).ToList();
+                    var occuringElseCondition = m.elseBR.Where(i => i.Offset <= c.callOffset && (i.Operand as Instruction).Offset >= c.callOffset).ToList();
+
+                    if (occuringIfCondiiton.Count > 0)
+                    {
+                        string lastLetter = NewLetter.GetNextNodeHandle();
+                        sB.AppendLine(parentMethod + " --> " + lastLetter + "{Decision?}");
+                        destination = WriteMermaidNodeFixedSource(lastLetter, ExtractMethod(c.callName), NewLetter.GetNextNodeHandle());
+
+                        elseNodeLetter = lastLetter;
+                        elseNodeMethod = m.methodName;
+                    }
+                    else if (occuringElseCondition.Count > 0)
+                    {
+                        if (elseNodeMethod == m.methodName)
+                        {
+                            destination = WriteMermaidNodeFixedSource(elseNodeLetter, ExtractMethod(c.callName), NewLetter.GetNextNodeHandle());
+                        }
+                        elseNodeLetter = string.Empty;
+                    }
+                }
+
+                if (!c.callName.Contains("__"))
+                {
+                    destination = NewLetter.GetNextNodeHandle() + "[\"" + ExtractMethod(c.callName) + "\"]";
                     sB.AppendLine(parentMethod + " --> " + destination);
                 }
                 else
                     destination = parentMethod;
 
                 //var f = item.methods.Where(hh => hh.methodName.Equals(c)).FirstOrDefault();
-                var f = methodCorrelations.SelectMany(type => type.methods).Where(dd => dd.methodName.Equals(c)).FirstOrDefault();
+                var f = methodCorrelations.SelectMany(type => type.methods).Where(dd => dd.methodName.Equals(c.callName)).FirstOrDefault();
 
                 if (f != null)
                 {
@@ -152,8 +191,11 @@ namespace Mermaid4net
         /*
          *  with lambda & async support
         */
-        private static void AnalyzeMethod(MethodDefinition method, List<string> methodCorrelations, TypeDefinition parentType)
+        private static void AnalyzeMethod(MethodDefinition method, daMethod methodCorrelations, TypeDefinition parentType)
         {
+            methodCorrelations.conditionalBranches = method.Body.Instructions.Where(y => conditionalBranches.Contains(y.OpCode));
+            methodCorrelations.elseBR = method.Body.Instructions.Where(y => y.OpCode == OpCodes.Br || y.OpCode == OpCodes.Br_S);
+
             if (method.IsAsync())
             {
                 foreach (var instruction in method.Body.Instructions)
@@ -167,7 +209,14 @@ namespace Mermaid4net
 
                             if (!IsSystemMethod(calledMethod))
                             {
-                                methodCorrelations.Add(calledMethod.FullName);
+
+                                methodCorrelations.calls.Add(new daCall() { callName = calledMethod.FullName, callOffset = instruction.Offset });
+
+                                if (showDecisionTask)
+                                {
+                                    methodCorrelations.conditionalBranches = (calledMethod as MethodDefinition).Body.Instructions.Where(y => conditionalBranches.Contains(y.OpCode));
+                                    methodCorrelations.elseBR = (calledMethod as MethodDefinition).Body.Instructions.Where(y => y.OpCode == OpCodes.Br || y.OpCode == OpCodes.Br_S);
+                                }
                                 //Console.WriteLine("*2" + calledMethod.FullName);
                             }
                         }
@@ -181,7 +230,13 @@ namespace Mermaid4net
 
                             if (!IsSystemMethod(delegateMethod))
                             {
-                                methodCorrelations.Add(delegateMethod.FullName);
+                                methodCorrelations.calls.Add(new daCall() { callName = delegateMethod.FullName, callOffset = instruction.Offset });
+
+                                if (showDecisionTask)
+                                {
+                                    methodCorrelations.conditionalBranches = (delegateMethod as MethodDefinition).Body.Instructions.Where(y => conditionalBranches.Contains(y.OpCode));
+                                    methodCorrelations.elseBR = (delegateMethod as MethodDefinition).Body.Instructions.Where(y => y.OpCode == OpCodes.Br || y.OpCode == OpCodes.Br_S);
+                                }
                                 //Console.WriteLine("*3" + delegateMethod.FullName);
                             }
                         }
@@ -217,8 +272,21 @@ namespace Mermaid4net
 
                                         if (!IsSystemMethod(calledMethod))
                                         {
-                                            methodCorrelations.Add(calledMethod.FullName);
-                                            //Console.WriteLine("*4" + calledMethod.FullName);
+                                            //methodCorrelations.calls.Add(new daCall() { callName = calledMethod.FullName, callOffset = instruction.Offset });
+
+                                            var h = (calledMethod as MethodDefinition);
+
+                                            if (h!=null && h.HasBody && h.Body.Instructions != null)
+                                            {
+                                                methodCorrelations.calls.Add(new daCall() { callName = h.FullName, callOffset = instruction.Offset });
+
+                                                if (showDecisionTask)
+                                                {
+                                                    methodCorrelations.conditionalBranches = h.Body.Instructions.Where(y => conditionalBranches.Contains(y.OpCode));
+                                                    methodCorrelations.elseBR = h.Body.Instructions.Where(y => y.OpCode == OpCodes.Br || y.OpCode == OpCodes.Br_S);
+                                                }
+                                                //Console.WriteLine("*4" + calledMethod.FullName);
+                                            }
                                         }
                                     }
                                 }
@@ -231,7 +299,13 @@ namespace Mermaid4net
 
                                         if (!IsSystemMethod(delegateMethod))
                                         {
-                                            methodCorrelations.Add(delegateMethod.FullName);
+                                            methodCorrelations.calls.Add(new daCall() { callName = delegateMethod.FullName, callOffset = instruction.Offset });
+
+                                            if (showDecisionTask)
+                                            {
+                                                methodCorrelations.conditionalBranches = (delegateMethod as MethodDefinition).Body.Instructions.Where(y => conditionalBranches.Contains(y.OpCode));
+                                                methodCorrelations.elseBR = (delegateMethod as MethodDefinition).Body.Instructions.Where(y => y.OpCode == OpCodes.Br || y.OpCode == OpCodes.Br_S);
+                                            }
                                             //Console.WriteLine("*5" + delegateMethod.FullName);
                                         }
                                     }
@@ -253,7 +327,7 @@ namespace Mermaid4net
                         {
                             if (!IsSystemMethod(calledMethod))
                             {
-                                methodCorrelations.Add(calledMethod.FullName);
+                                methodCorrelations.calls.Add(new daCall() { callName = calledMethod.FullName, callOffset = instruction.Offset });
                                 //Console.WriteLine("*6" + calledMethod.FullName);
                             }
                         }
@@ -262,6 +336,45 @@ namespace Mermaid4net
             }
         }
 
+        private static readonly HashSet<OpCode> conditionalBranches = new HashSet<OpCode>
+        {
+            OpCodes.Beq,
+            OpCodes.Beq_S,
+            OpCodes.Bge,
+            OpCodes.Bge_S,
+            OpCodes.Bge_Un,
+            OpCodes.Bge_Un_S,
+            OpCodes.Bgt,
+            OpCodes.Bgt_S,
+            OpCodes.Bgt_Un,
+            OpCodes.Bgt_Un_S,
+            OpCodes.Ble,
+            OpCodes.Ble_S,
+            OpCodes.Ble_Un,
+            OpCodes.Ble_Un_S,
+            OpCodes.Blt,
+            OpCodes.Blt_S,
+            OpCodes.Blt_Un,
+            OpCodes.Blt_Un_S,
+            OpCodes.Bne_Un,
+            OpCodes.Bne_Un_S,
+            OpCodes.Brfalse,
+            OpCodes.Brfalse_S,
+            OpCodes.Brtrue,
+            OpCodes.Brtrue_S
+        };
+
+        private static string WriteMermaidNodeFixedSource(string src, string dst, string dstH)
+        {
+            string destination = dstH + "[\"" + ExtractMethod(dst) + "\"]";
+            sB.AppendLine(src + " --> " + destination);
+            return destination;
+        }
+
+        private static string GetNewMermaidNode(string src, string srcH)
+        {
+            return srcH + "[\"" + ExtractMethod(src) + "\"]";
+        }
 
         private static Regex regex = new Regex(@"([A-Za-z0-9_]+::[A-Za-z0-9_]+)", RegexOptions.Compiled);
 
@@ -337,6 +450,11 @@ namespace Mermaid4net
         }
 
         #endregion
+
+        private void chkDecision_CheckStateChanged(object sender, EventArgs e)
+        {
+            chkDecisionTask.Enabled = chkDecision.Checked;
+        }
     }
 
 
