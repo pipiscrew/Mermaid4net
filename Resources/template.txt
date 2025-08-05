@@ -11,6 +11,9 @@ https://github.com/mermaid-js/mermaid/tree/develop/packages/mermaid/src/themes
 https://github.com/itn3000/Cs2Mermaid
 https://github.com/samsmithnz/MermaidDotNet
 https://github.com/jespervandijk/mermaid-class-diagram-generator
+--
+zoom - https://github.com/mermaid-js/mermaid/issues/2162#issuecomment-1542542439
+--
 draw.io - can import mermaid - use "Arrange" > "Insert" > "Advanced" > "Mermaid"
 -->
 <title>Mermaid for .net | {filename}</title>

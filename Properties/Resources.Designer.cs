@@ -90,5 +90,26 @@ namespace Mermaid4net.Properties {
                 return ResourceManager.GetString("template", resourceCulture);
             }
         }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to &lt;html&gt;
+        ///&lt;!--
+        ///https://mermaid.js.org/intro/getting-started.html
+        ///https://mermaid.js.org/config/schema-docs/config.html
+        ///https://mermaid.live/
+        ///https://mermaid.js.org/ecosystem/mermaid-chart.html
+        ///https://www.mermaidchart.com/
+        ///https://jojozhuang.github.io/tutorial/mermaid-cheat-sheet/
+        ///https://github.com/mermaid-js/mermaid/tree/develop/packages/mermaid/src/themes
+        ///-
+        ///https://github.com/itn3000/Cs2Mermaid
+        ///https://github.com/samsmithnz/MermaidDotNet
+        ///https://github.com/jespervandijk/mermaid-class-diagram-gen [rest of string was truncated]&quot;;.
+        /// </summary>
+        internal static string templateAllInOneZoom {
+            get {
+                return ResourceManager.GetString("templateAllInOneZoom", resourceCulture);
+            }
+        }
     }
 }

@@ -1,4 +1,5 @@
 ﻿using Mono.Cecil.Cil;
+using Mono.Collections.Generic;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -35,5 +36,12 @@ namespace Mermaid4net
     {
         public string callName { get; set; }
         public int callOffset { get; set; }
+    }
+
+    public class AnalyzedMethod
+    {
+        public daCall methodCall { get; set; }
+        public Collection<Instruction> conditionalBranches { get; set; }
+        public Collection<Instruction> elseBR { get; set; }
     }
 }

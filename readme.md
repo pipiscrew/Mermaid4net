@@ -6,7 +6,7 @@ This project comes to give an end to this mess, point the assembly then you got 
 * [Fatesoft.Program Flow chart Generator](https://www.fatesoft.com/) - codeflow representation, accepts only 1 source code / graph.
 * vscode - [kr.Code to Flowchart](https://github.com/karthyick/code2flowchart) - no so accurate on csharp ([sample](https://i.imgur.com/09ZkdHO.jpeg))  
 
-![Image](https://github.com/user-attachments/assets/1374feaa-a76d-4f85-800e-0a9ee0aec4f6)
+![Image](https://github.com/user-attachments/assets/6a2cbb80-b071-463c-9ccf-e6032a3cc741)
 
 ![Image](https://github.com/user-attachments/assets/f2f8deec-1c63-4c0d-aeba-c7b70b43d3e1)  
 
@@ -15,6 +15,7 @@ Without [mermaid](https://mermaid.js.org/) could not be possible!
 This project uses : 
 * [Mono.Cecil](https://github.com/jbevain/cecil) - to read assembly entities
 * [mermaidJS](https://mermaid.js.org/) - to display the flowchart   
+* [timmywil/panzoom](https://github.com/timmywil/panzoom) - on exported html for zoom capabilities  
 
 > [!TIP]  
 > draw.io - can import mermaid - use "Arrange" > "Insert" > "Advanced" > "Mermaid"  

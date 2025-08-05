@@ -2,23 +2,18 @@
 using Mono.Cecil.Cil;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Text;
-using System.Text.RegularExpressions;
 using System.Windows.Forms;
 
 namespace Mermaid4net
 {
     public partial class MainForm : Form
     {
-
-        internal static List<daClass> methodCorrelations;
-        internal static StringBuilder sB;
-        internal static bool showDecision;
-        internal static bool showDecisionTask;
-        
+        private static INodeHandleGenerator NewNodeHandle = null;
 
         public MainForm()
         {
@@ -36,14 +31,14 @@ namespace Mermaid4net
                 return;
             }
 
-            var assembly = AssemblyDefinition.ReadAssembly(txtFile.Text);
+            General.assembly = AssemblyDefinition.ReadAssembly(txtFile.Text);
 
-            methodCorrelations = new List<daClass>();
-            showDecision = chkDecision.Checked; //make it accessible by static methods
-            showDecisionTask = chkDecisionTask.Checked;
+            General.methodCorrelations = new List<daClass>();
+            General.showDecision = chkDecision.Checked; //make it accessible by static methods
+            General.showDecisionTask = chkDecisionTask.Checked;
+            General.showImplementation = chkInterfaceImplementation.Checked;
 
-
-            foreach (var type in assembly.MainModule.Types)
+            foreach (var type in General.assembly.MainModule.Types)
             {
                 if (type.IsInterface)
                     continue;
@@ -56,10 +51,8 @@ namespace Mermaid4net
 
                 foreach (var method in type.Methods)
                 {
-                    if (IsSystemMethod(method) || method.FullName == "System.Void Program::<Main>(System.String[])") //.net8 console async main
+                    if (General.IsSystemMethod(method) || method.FullName == "System.Void Program::<Main>(System.String[])") //.net8 console async main
                         continue;
-
-                    //Console.WriteLine("*1*" + method.FullName);
 
                     daMethod newMethod = new daMethod();
                     newMethod.methodName = method.FullName;
@@ -72,55 +65,84 @@ namespace Mermaid4net
                     newType.methods.Add(newMethod);
                 }
 
-                methodCorrelations.Add(newType);
+                General.methodCorrelations.Add(newType);
                 //Console.WriteLine("------------------------" + type.Name + "------------------------");
             }
 
-            INodeHandleGenerator NewNodeHandle;
+            
             if (optLetter.Checked)
                 NewNodeHandle = new LetterGenerator();
             else
                 NewNodeHandle = new NumGenerator();
 
-       
-            sB = new StringBuilder();
+
+            General.sB = new StringBuilder();
             string lastMethod = string.Empty;
-            foreach (daClass item in methodCorrelations)
+
+            ///////////////// EXPORT [start]
+            if (exportAllinOne.Checked)
             {
-                if (item.methods.Count == 0)
-                    continue;
+                if (chkExportAllinOneWithHeaders.Checked)
+                    ExportAllinOneWithHeaders();
+                else
+                    ExportAllinOne();
+            }
+            else if (exportPer.Checked)
+            {
+                ExportPerEntity(Path.GetDirectoryName(txtFile.Text) + "\\" + DateTime.Now.ToString("yyyyMMddHHmmss") + "\\");
+            }
+
+            ///////////////// EXPORT [end]
 
 
-                sB.AppendLine("<h2>" + item.className + "</h2>\r\n");
-                sB.AppendLine("<pre class=\"mermaid\">\r\ngraph LR"); //TD
-                foreach (daMethod m in item.methods) //.Where(z=>z.calls.Count>0))
+
+            //General.sB.AppendLine("<pre class=\"mermaid\">\r\ngraph LR"); //TD
+
+            //foreach (daClass item in General.methodCorrelations)
+            //{
+            //    if (item.methods.Count == 0)
+            //        continue;
+
+            //    //General.sB.AppendLine("<h2>" + item.className + "</h2>\r\n");
+            //    //General.sB.AppendLine("<pre class=\"mermaid\">\r\ngraph LR"); //TD
+            //    foreach (daMethod m in item.methods) //.Where(z=>z.calls.Count>0))
+            //    {
+            //        lastMethod = NewNodeHandle.GetNextNodeHandle() + "[\"" + General.ExtractMethod(m.methodName) + "\"]";
+            //        DigCall(m, item, lastMethod, NewNodeHandle, General.sB, 0, 10);
+            //    }
+
+            //    //General.sB.AppendLine("</pre>");
+            //}
+
+            //General.sB.AppendLine("</pre>");
+
+            General.assembly.Dispose();
+
+            ////////////////////////////////// only when all-in-one file
+            if (exportAllinOne.Checked)
+            {
+                string output = Path.GetDirectoryName(txtFile.Text) + "\\"
+                                + Path.GetFileNameWithoutExtension(txtFile.Text)
+                                + "_" + DateTime.Now.ToString("yyyyMMddHHmmss") + ".html";
+
+                if (File.Exists(output))
                 {
-
-                    lastMethod = NewNodeHandle.GetNextNodeHandle() + "[\"" + ExtractMethod(m.methodName) + "\"]";
-                    DigCall(m, item, lastMethod, NewNodeHandle, sB, 0, 10);
-
+                    MessageBox.Show("Could not save the file, same file exists.\n\n" + output);
+                    return;
                 }
-                sB.AppendLine("</pre>");
 
+                string template = Mermaid4net.Properties.Resources.templateAllInOneZoom;
+                
+                if (chkExportAllinOneWithHeaders.Checked)
+                    template =  Mermaid4net.Properties.Resources.template;
+                
+                    File.WriteAllText(output, template
+                                                .Replace("{placeholder}", General.sB.ToString())
+                                                .Replace("{filename}", Path.GetFileName(txtFile.Text)));
+ 
+
+                System.Diagnostics.Process.Start(output);
             }
-
-            assembly.Dispose();
-
-            string output = Path.GetDirectoryName(txtFile.Text) + "\\"
-                            + Path.GetFileNameWithoutExtension(txtFile.Text)
-                            + "_" + DateTime.Now.ToString("yyyyMMddHHmmss") + ".html";
-
-            if (File.Exists(output))
-            {
-                MessageBox.Show("Could not save the file, same file exists.\n\n" + output);
-                return;
-            }
-
-            File.WriteAllText(output, Mermaid4net.Properties.Resources.template
-                                        .Replace("{placeholder}", sB.ToString())
-                                        .Replace("{filename}", Path.GetFileName(txtFile.Text)));
-
-            System.Diagnostics.Process.Start(output);
 
             GC.Collect();
         }
@@ -135,16 +157,11 @@ namespace Mermaid4net
                 return;
             }
 
-            if (m.methodName.Contains("button3_Click_1"))
-            {
-                Console.WriteLine("!!");
-            }
-            // string lastMethod =NewLetter.GetNextLetter() + "[\"" + ExtractMethod(parentMethod) + "\"]";
             string destination = string.Empty;
 
             foreach (var c in m.calls)
             {
-                if (showDecision)
+                if (General.showDecision)
                 {
                     var occuringIfCondiiton = m.conditionalBranches.Where(i => i.Offset <= c.callOffset && (i.Operand as Instruction).Offset >= c.callOffset).ToList();
                     var occuringElseCondition = m.elseBR.Where(i => i.Offset <= c.callOffset && (i.Operand as Instruction).Offset >= c.callOffset).ToList();
@@ -153,7 +170,7 @@ namespace Mermaid4net
                     {
                         string lastLetter = NewLetter.GetNextNodeHandle();
                         sB.AppendLine(parentMethod + " --> " + lastLetter + "{Decision?}");
-                        destination = WriteMermaidNodeFixedSource(lastLetter, ExtractMethod(c.callName), NewLetter.GetNextNodeHandle());
+                        destination = General.WriteMermaidNodeFixedSource(lastLetter, General.ExtractMethod(c.callName), NewLetter.GetNextNodeHandle());
 
                         elseNodeLetter = lastLetter;
                         elseNodeMethod = m.methodName;
@@ -162,7 +179,7 @@ namespace Mermaid4net
                     {
                         if (elseNodeMethod == m.methodName)
                         {
-                            destination = WriteMermaidNodeFixedSource(elseNodeLetter, ExtractMethod(c.callName), NewLetter.GetNextNodeHandle());
+                            destination = General.WriteMermaidNodeFixedSource(elseNodeLetter, General.ExtractMethod(c.callName), NewLetter.GetNextNodeHandle());
                         }
                         elseNodeLetter = string.Empty;
                     }
@@ -170,14 +187,13 @@ namespace Mermaid4net
 
                 if (!c.callName.Contains("__"))
                 {
-                    destination = NewLetter.GetNextNodeHandle() + "[\"" + ExtractMethod(c.callName) + "\"]";
+                    destination = NewLetter.GetNextNodeHandle() + "[\"" + General.ExtractMethod(c.callName) + "\"]";
                     sB.AppendLine(parentMethod + " --> " + destination);
                 }
                 else
                     destination = parentMethod;
 
-                //var f = item.methods.Where(hh => hh.methodName.Equals(c)).FirstOrDefault();
-                var f = methodCorrelations.SelectMany(type => type.methods).Where(dd => dd.methodName.Equals(c.callName)).FirstOrDefault();
+                var f = General.methodCorrelations.SelectMany(type => type.methods).Where(dd => dd.methodName.Equals(c.callName)).FirstOrDefault();
 
                 if (f != null)
                 {
@@ -193,7 +209,7 @@ namespace Mermaid4net
         */
         private static void AnalyzeMethod(MethodDefinition method, daMethod methodCorrelations, TypeDefinition parentType)
         {
-            methodCorrelations.conditionalBranches = method.Body.Instructions.Where(y => conditionalBranches.Contains(y.OpCode));
+            methodCorrelations.conditionalBranches = method.Body.Instructions.Where(y => General.conditionalBranches.Contains(y.OpCode));
             methodCorrelations.elseBR = method.Body.Instructions.Where(y => y.OpCode == OpCodes.Br || y.OpCode == OpCodes.Br_S);
 
             if (method.IsAsync())
@@ -202,42 +218,32 @@ namespace Mermaid4net
                 {
                     if (instruction.OpCode == OpCodes.Call || instruction.OpCode == OpCodes.Callvirt)
                     {
+                        AnalyzedMethod x = General.AnalyzeMethodCall(instruction);
 
-                        var calledMethod = instruction.Operand as MethodReference;
-                        if (calledMethod != null)
+                        if (x.methodCall != null)
                         {
+                            methodCorrelations.calls.Add(x.methodCall);
 
-                            if (!IsSystemMethod(calledMethod))
+                            if (General.showDecisionTask)
                             {
-
-                                methodCorrelations.calls.Add(new daCall() { callName = calledMethod.FullName, callOffset = instruction.Offset });
-
-                                if (showDecisionTask)
-                                {
-                                    methodCorrelations.conditionalBranches = (calledMethod as MethodDefinition).Body.Instructions.Where(y => conditionalBranches.Contains(y.OpCode));
-                                    methodCorrelations.elseBR = (calledMethod as MethodDefinition).Body.Instructions.Where(y => y.OpCode == OpCodes.Br || y.OpCode == OpCodes.Br_S);
-                                }
-                                //Console.WriteLine("*2" + calledMethod.FullName);
+                                methodCorrelations.conditionalBranches = x.conditionalBranches;
+                                methodCorrelations.elseBR = x.elseBR;
                             }
                         }
                     }
                     else if (instruction.OpCode == OpCodes.Ldftn)
                     {
                         // handle delegate invocation (as Task.Run)
-                        var delegateMethod = instruction.Operand as MethodReference;
-                        if (delegateMethod != null)
+                        AnalyzedMethod x = General.AnalyzeMethodCall(instruction);
+
+                        if (x.methodCall != null)
                         {
+                            methodCorrelations.calls.Add(x.methodCall);
 
-                            if (!IsSystemMethod(delegateMethod))
+                            if (General.showDecisionTask)
                             {
-                                methodCorrelations.calls.Add(new daCall() { callName = delegateMethod.FullName, callOffset = instruction.Offset });
-
-                                if (showDecisionTask)
-                                {
-                                    methodCorrelations.conditionalBranches = (delegateMethod as MethodDefinition).Body.Instructions.Where(y => conditionalBranches.Contains(y.OpCode));
-                                    methodCorrelations.elseBR = (delegateMethod as MethodDefinition).Body.Instructions.Where(y => y.OpCode == OpCodes.Br || y.OpCode == OpCodes.Br_S);
-                                }
-                                //Console.WriteLine("*3" + delegateMethod.FullName);
+                                methodCorrelations.conditionalBranches = x.conditionalBranches;
+                                methodCorrelations.elseBR = x.elseBR;
                             }
                         }
                     }
@@ -266,47 +272,32 @@ namespace Mermaid4net
                             {
                                 if (instruction.OpCode == OpCodes.Call || instruction.OpCode == OpCodes.Callvirt)
                                 {
-                                    var calledMethod = instruction.Operand as MethodReference;
-                                    if (calledMethod != null)
+                                    AnalyzedMethod x = General.AnalyzeMethodCall(instruction);
+
+                                    if (x.methodCall != null)
                                     {
+                                        methodCorrelations.calls.Add(x.methodCall);
 
-                                        if (!IsSystemMethod(calledMethod))
+                                        if (General.showDecisionTask)
                                         {
-                                            //methodCorrelations.calls.Add(new daCall() { callName = calledMethod.FullName, callOffset = instruction.Offset });
-
-                                            var h = (calledMethod as MethodDefinition);
-
-                                            if (h!=null && h.HasBody && h.Body.Instructions != null)
-                                            {
-                                                methodCorrelations.calls.Add(new daCall() { callName = h.FullName, callOffset = instruction.Offset });
-
-                                                if (showDecisionTask)
-                                                {
-                                                    methodCorrelations.conditionalBranches = h.Body.Instructions.Where(y => conditionalBranches.Contains(y.OpCode));
-                                                    methodCorrelations.elseBR = h.Body.Instructions.Where(y => y.OpCode == OpCodes.Br || y.OpCode == OpCodes.Br_S);
-                                                }
-                                                //Console.WriteLine("*4" + calledMethod.FullName);
-                                            }
+                                            methodCorrelations.conditionalBranches = x.conditionalBranches;
+                                            methodCorrelations.elseBR = x.elseBR;
                                         }
                                     }
                                 }
                                 else if (instruction.OpCode == OpCodes.Ldftn)
                                 {
                                     // handle delegate invocation in the state machine
-                                    var delegateMethod = instruction.Operand as MethodReference;
-                                    if (delegateMethod != null)
+                                    AnalyzedMethod x = General.AnalyzeMethodCall(instruction);
+
+                                    if (x.methodCall != null)
                                     {
+                                        methodCorrelations.calls.Add(x.methodCall);
 
-                                        if (!IsSystemMethod(delegateMethod))
+                                        if (General.showDecisionTask)
                                         {
-                                            methodCorrelations.calls.Add(new daCall() { callName = delegateMethod.FullName, callOffset = instruction.Offset });
-
-                                            if (showDecisionTask)
-                                            {
-                                                methodCorrelations.conditionalBranches = (delegateMethod as MethodDefinition).Body.Instructions.Where(y => conditionalBranches.Contains(y.OpCode));
-                                                methodCorrelations.elseBR = (delegateMethod as MethodDefinition).Body.Instructions.Where(y => y.OpCode == OpCodes.Br || y.OpCode == OpCodes.Br_S);
-                                            }
-                                            //Console.WriteLine("*5" + delegateMethod.FullName);
+                                            methodCorrelations.conditionalBranches = x.conditionalBranches;
+                                            methodCorrelations.elseBR = x.elseBR;
                                         }
                                     }
                                 }
@@ -322,113 +313,15 @@ namespace Mermaid4net
                 {
                     if (instruction.OpCode == OpCodes.Call || instruction.OpCode == OpCodes.Callvirt)
                     {
-                        var calledMethod = instruction.Operand as MethodReference;
-                        if (calledMethod != null)
+                        AnalyzedMethod x = General.AnalyzeMethodCall(instruction);
+
+                        if (x.methodCall != null)
                         {
-                            if (!IsSystemMethod(calledMethod))
-                            {
-                                methodCorrelations.calls.Add(new daCall() { callName = calledMethod.FullName, callOffset = instruction.Offset });
-                                //Console.WriteLine("*6" + calledMethod.FullName);
-                            }
+                            methodCorrelations.calls.Add(x.methodCall);
                         }
                     }
                 }
             }
-        }
-
-        private static readonly HashSet<OpCode> conditionalBranches = new HashSet<OpCode>
-        {
-            OpCodes.Beq,
-            OpCodes.Beq_S,
-            OpCodes.Bge,
-            OpCodes.Bge_S,
-            OpCodes.Bge_Un,
-            OpCodes.Bge_Un_S,
-            OpCodes.Bgt,
-            OpCodes.Bgt_S,
-            OpCodes.Bgt_Un,
-            OpCodes.Bgt_Un_S,
-            OpCodes.Ble,
-            OpCodes.Ble_S,
-            OpCodes.Ble_Un,
-            OpCodes.Ble_Un_S,
-            OpCodes.Blt,
-            OpCodes.Blt_S,
-            OpCodes.Blt_Un,
-            OpCodes.Blt_Un_S,
-            OpCodes.Bne_Un,
-            OpCodes.Bne_Un_S,
-            OpCodes.Brfalse,
-            OpCodes.Brfalse_S,
-            OpCodes.Brtrue,
-            OpCodes.Brtrue_S
-        };
-
-        private static string WriteMermaidNodeFixedSource(string src, string dst, string dstH)
-        {
-            string destination = dstH + "[\"" + ExtractMethod(dst) + "\"]";
-            sB.AppendLine(src + " --> " + destination);
-            return destination;
-        }
-
-        private static string GetNewMermaidNode(string src, string srcH)
-        {
-            return srcH + "[\"" + ExtractMethod(src) + "\"]";
-        }
-
-        private static Regex regex = new Regex(@"([A-Za-z0-9_]+::[A-Za-z0-9_]+)", RegexOptions.Compiled);
-
-        private static string ExtractMethod(string input)
-        {
-            MatchCollection matches = regex.Matches(input);
-
-            if (matches.Count > 0)
-            {
-                return ReplaceHTMLtxt(matches[0].Value);
-            }
-            else
-            {
-                return ReplaceHTMLtxt(input);
-            }
-        }
-
-        private static string ReplaceHTMLtxt(string HTMLSTR)
-        {
-            HTMLSTR = HTMLSTR.Replace("&", "&amp;");
-            HTMLSTR = HTMLSTR.Replace("\"", "&quot;");
-            HTMLSTR = HTMLSTR.Replace("<", "&lt;");
-            HTMLSTR = HTMLSTR.Replace(">", "&gt;");
-            HTMLSTR = HTMLSTR.Replace(" ", "&nbsp;");
-            HTMLSTR = HTMLSTR.Replace("'", "&#39;");
-
-            return HTMLSTR;
-        }
-
-        private static bool IsSystemMethod(MethodReference methodReference)
-        {
-            if (methodReference.DeclaringType.Namespace.StartsWith("System"))
-            {
-                return true;
-            }
-
-            string m = methodReference.FullName;
-            if (m.Contains("CompilerServices") || m.Contains("AsyncVoidMethodBuilder") || m.Contains("AsyncTaskMethodBuilder")
-                || m == "System.Void System.Object::.ctor()" || m.Contains("get_") || m.Contains("set_") || m.Contains("Dispose()")
-                || m.Contains("System.Collections.Generic.List") || m.Contains("EqualityComparer")
-                || m.Contains("op_Inequality") || m.Contains("op_Equality") || m.Contains("op_Implicit")
-                || m.Contains("Equals") || m.Contains("::ToString")
-                || m.Contains("StringBuilder::") || m.Contains("String::")
-                || m.Contains("Array::") || m.Contains("Enumerable::")
-                || m.Contains("Task::") || m.Contains("Array::")
-                || m.Contains("Convert::") || m.Contains("TimeSpan::")
-                || m.Contains("Regex::") || m.Contains("LoggerExtensions::")
-                || m.Contains("Stopwatch::") || m.Contains("ILogger::")
-                || m.Contains("ConfigurationManager::") || m.Contains("::op_LessThan") || m.Contains("::op_GreaterThan") || m.Contains("::op_Division") || m.Contains("::op_Multiply") || m.Contains("::op_Subtraction") || m.Contains("::GetString") || m.Contains("Control::") || m.Contains("MessageBox::") || m.Contains("Encoding::") || m.Contains("IEnumerator::") || m.Contains("ControlCollection::") || m.Contains("Console::") || m.Contains("Delegate::") || m.Contains("ContainerControl::")
-                || m.Contains("EventHandler::") || m.Contains("GetQueryableEntity") || m.Contains("CSharpArgumentInfo") || m.Contains("::GetKeyProperty") || m.Contains("MVCxGridViewColumnCollection")
-                || m.Contains("::And(") || m.Contains("::Or("))
-                return true;
-            else
-                return false;
         }
 
         #region TextBox DragDrop
@@ -453,16 +346,117 @@ namespace Mermaid4net
 
         private void chkDecision_CheckStateChanged(object sender, EventArgs e)
         {
-            chkDecisionTask.Enabled = chkDecision.Checked;
+            chkDecisionTask.Checked = chkDecisionTask.Visible = chkDecision.Checked;
         }
-    }
+
+        //private void exportPer_CheckedChanged(object sender, EventArgs e)
+        //{
+        //    chkExportPerZoom.Visible = exportPer.Checked;
+        //}
 
 
-    public static class MethodDefinitionExtensions
-    {
-        public static bool IsAsync(this MethodDefinition method)
+        //private void exportAllinOne_CheckedChanged(object sender, EventArgs e)
+        //{
+        //    chkExportAllinOneWithHeaders.Visible = exportAllinOne.Checked;
+        //}
+
+        private static void ExportAllinOneWithHeaders()
         {
-            return method.CustomAttributes.Any(attr => attr.AttributeType.FullName == "System.Runtime.CompilerServices.AsyncStateMachineAttribute");
+            string lastMethod = string.Empty;
+
+            foreach (daClass item in General.methodCorrelations)
+            {
+                if (item.methods.Count == 0)
+                    continue;
+
+                General.sB.AppendLine("<h2>" + item.className + "</h2>\r\n");
+                General.sB.AppendLine("<pre class=\"mermaid\">\r\ngraph LR"); //TD
+
+                foreach (daMethod m in item.methods)
+                {
+                    lastMethod = NewNodeHandle.GetNextNodeHandle() + "[\"" + General.ExtractMethod(m.methodName) + "\"]";
+                    DigCall(m, item, lastMethod, NewNodeHandle, General.sB, 0, 10);
+                }
+
+                General.sB.AppendLine("</pre>");
+            }
+        }
+
+        private static void ExportAllinOne()
+        {
+            string lastMethod = string.Empty;
+            General.sB.AppendLine("<pre class=\"mermaid\">\r\ngraph LR"); //TD
+
+            foreach (daClass item in General.methodCorrelations)
+            {
+                if (item.methods.Count == 0)
+                    continue;
+
+                foreach (daMethod m in item.methods)
+                {
+                    lastMethod = NewNodeHandle.GetNextNodeHandle() + "[\"" + General.ExtractMethod(m.methodName) + "\"]";
+                    DigCall(m, item, lastMethod, NewNodeHandle, General.sB, 0, 10);
+                }
+            }
+
+            General.sB.AppendLine("</pre>");
+        }
+
+        private static void ExportPerEntity(string folder)
+        {
+            string lastClass = string.Empty;
+            string lastMethod = string.Empty;
+            string entity = string.Empty;
+
+            Directory.CreateDirectory(folder);
+
+            foreach (daClass item in General.methodCorrelations)
+            {
+                if (item.methods.Count == 0)
+                    continue;
+
+                //export
+                if (lastClass != item.className)
+                {
+                    if (lastClass != string.Empty)
+                    {
+                        File.WriteAllText(folder + lastClass + ".html", Mermaid4net.Properties.Resources.templateAllInOneZoom
+                                          .Replace("{placeholder}", General.sB.ToString())
+                                          .Replace("{filename}", lastClass));
+                    }
+                    General.sB = new StringBuilder();
+                }
+
+                //start new entity
+                General.sB.AppendLine("<pre class=\"mermaid\">\r\ngraph LR"); //TD
+
+                foreach (daMethod m in item.methods)
+                {
+                    lastMethod = NewNodeHandle.GetNextNodeHandle() + "[\"" + General.ExtractMethod(m.methodName) + "\"]";
+                    DigCall(m, item, lastMethod, NewNodeHandle, General.sB, 0, 10);
+                }
+
+                General.sB.AppendLine("</pre>");
+
+                lastClass = item.className;
+            }
+
+            //the last one
+            if (lastClass != string.Empty)
+            {
+                File.WriteAllText(folder + lastClass + ".html", Mermaid4net.Properties.Resources.templateAllInOneZoom
+                                      .Replace("{placeholder}", General.sB.ToString())
+                                      .Replace("{filename}", lastClass));
+            }
+
+            Process.Start(folder);
+        }
+        
+
+
+        private void exportAllinOne_CheckedChanged(object sender, EventArgs e)
+        {
+            chkExportAllinOneWithHeaders.Visible = exportAllinOne.Checked;
         }
     }
 }

@@ -49,6 +49,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="daClass.cs" />
+    <Compile Include="General.cs" />
     <Compile Include="MainForm.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -89,6 +90,9 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\template.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\templateAllInOneZoom.txt" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
