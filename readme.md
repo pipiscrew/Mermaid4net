@@ -1,7 +1,7 @@
 # Mermaid for .net
 How many times, you open an `old big` project and you have to search from scratch what is going on ?  
 
-This project comes to give an end to this mess, point the assembly then you got a flowchart diagram that `visualizes` each method dependencies (what methods uses). The existing `solutions` do provide such functionality, but miss the simplicity. Yeah, talking about :  
+This project comes to give an end to this mess, point the assembly then you get a flowchart diagram that `visualizes` each method dependencies (what methods uses). The existing `solutions` do provide such functionality, but miss the simplicity. Yeah, talking about :  
 * [Zen.ndepend](https://www.ndepend.com/docs/class-dependency-diagram) - needed user interaction, clicks-clicks-clicks...
 * [Fatesoft.Program Flow chart Generator](https://www.fatesoft.com/) - codeflow representation, accepts only 1 source code / graph.
 * vscode - [kr.Code to Flowchart](https://github.com/karthyick/code2flowchart) - no so accurate on csharp ([sample](https://i.imgur.com/09ZkdHO.jpeg))  
