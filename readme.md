@@ -33,3 +33,6 @@ references :
 ## This project is no longer maintained
 Copyright (c) 2025 [PipisCrew](http://pipiscrew.com)  
 Licensed under the [MIT license](http://www.opensource.org/licenses/mit-license.php)
+
+&nbsp;
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/pipiscrew/Mermaid4net)
